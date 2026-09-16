@@ -1,0 +1,11 @@
+app:
+  port: 3000
+  visibility: private # public or private
+  allow_crawling: false
+
+commands:
+  dev: "nub sample_app/server.ts"
+
+sub_users:
+  - id: "client_a"
+    password: "client_password123"

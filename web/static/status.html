@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="refresh" content="3">
+  <title>起動待機中 — Codespace Gateway</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <style>
+    .status-card {
+      max-width: 440px;
+      padding: 2.25rem 2rem;
+    }
+
+    .indicator-bar {
+      height: 2px;
+      width: 100%;
+      background-color: var(--rule);
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+      border-radius: 1px;
+    }
+
+    .indicator-progress {
+      height: 100%;
+      width: 40%;
+      background-color: var(--accent);
+      animation: progress 1.5s infinite ease-in-out;
+    }
+
+    @keyframes progress {
+      0% {
+        transform: translateX(-100%);
+      }
+
+      100% {
+        transform: translateX(300%);
+      }
+    }
+
+    .code-snippet {
+      background-color: var(--paper-subtle);
+      border: var(--hair) solid var(--rule);
+      border-radius: var(--radius-sm);
+      padding: 0.75rem;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      margin: 1.25rem 0;
+      color: var(--ink);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container auth-wrapper">
+    <div class="card status-card">
+      <div class="indicator-bar">
+        <div class="indicator-progress"></div>
+      </div>
+
+      <h1 class="auth-title">アプリケーション起動中</h1>
+      <p class="auth-subtitle">
+        ポート {{.Port}} での開発サーバーの応答を待機しています。
+      </p>
+
+      <div class="code-snippet">
+        $ {{.Command}}
+      </div>
+
+      <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
+        <button onclick="location.reload()" class="btn btn-primary btn-sm">再読み込み</button>
+        <a href="/logs" class="btn btn-secondary btn-sm" target="_blank">ログを確認</a>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>

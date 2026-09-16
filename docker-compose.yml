@@ -1,0 +1,22 @@
+services:
+  workspace:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: codespace-workspace
+    ports:
+      - "80:80"
+    environment:
+      - PORT=80
+      - CODE_SERVER_PORT=8080
+      - WORKSPACE_DIR=/workspace
+      - ADMIN_USER=admin
+      - ADMIN_PASS=admin123
+      - COOKIE_SECRET=change-this-secret-in-production
+    volumes:
+      # Mount project workspace directory for persistent development
+      - workspace-data:/workspace
+    restart: unless-stopped
+
+volumes:
+  workspace-data:

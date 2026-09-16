@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ログイン — Codespace Gateway</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+  <div class="container auth-wrapper">
+    <div class="card auth-card">
+      <div class="auth-header">
+        <h1 class="auth-title">Codespace Gateway</h1>
+      </div>
+
+      {{if .Error}}
+      <div class="alert-error" role="alert">
+        <span>{{.Error}}</span>
+      </div>
+      {{end}}
+
+      <form action="/login" method="POST" id="loginForm">
+        <input type="hidden" name="redirect" value="{{.Redirect}}">
+
+        <div class="form-group">
+          <label class="form-label" for="username">アカウントID</label>
+          <input type="text" id="username" name="username" class="form-input" placeholder="admin または サブユーザーID" required
+            autofocus autocomplete="username">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">パスワード</label>
+          <input type="password" id="password" name="password" class="form-input" placeholder="••••••••" required
+            autocomplete="current-password">
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="margin-top: 0.75rem;">
+          ログイン
+        </button>
+      </form>
+
+    </div>
+  </div>
+</body>
+
+</html>

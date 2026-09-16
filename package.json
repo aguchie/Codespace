@@ -1,0 +1,16 @@
+{
+  "name": "workspace-environment",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Browser-based integrated development and execution environment with Code-Server and Go Gateway",
+  "scripts": {
+    "dev": "nub watch sample_app/server.ts",
+    "build:ui": "nubx esbuild web/src/login.ts --bundle --outfile=web/static/js/login.js --minify && nubx esbuild web/src/logs.ts --bundle --outfile=web/static/js/logs.js --minify",
+    "build:go": "go build -o bin/workspace-manager ./cmd/workspace-manager",
+    "start": "nub sample_app/server.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3"
+  }
+}

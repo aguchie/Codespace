@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>プロセスログ — Codespace Gateway</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/logs.css">
+</head>
+<body>
+  <header class="app-header">
+    <a href="/editor" class="brand">Codespace Gateway</a>
+
+    <nav class="nav-links">
+      <a href="/editor" class="nav-link" target="_blank">エディタ</a>
+      <a href="/" class="nav-link" target="_blank">プレビュー</a>
+      <a href="/logs" class="nav-link active">プロセスログ</a>
+      <a href="/logout" class="nav-link" style="color: var(--danger);">ログアウト</a>
+    </nav>
+  </header>
+
+  <main class="dashboard-layout">
+    <div class="card dashboard-toolbar">
+      <div class="toolbar-group">
+        <span style="font-weight: 500; font-size: 0.85rem; color: var(--ink-2); margin-right: 0.25rem;">フィルタ:</span>
+        <button class="filter-btn active" data-filter="all">すべて</button>
+        <button class="filter-btn" data-filter="app">ユーザーアプリ</button>
+        <button class="filter-btn" data-filter="editor">Code-Server</button>
+        <button class="filter-btn" data-filter="gateway">Gateway</button>
+      </div>
+
+      <div class="toolbar-group">
+        <input type="text" id="searchInput" class="search-input" placeholder="ログを検索...">
+        <label style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.8rem; cursor: pointer; color: var(--ink-2);">
+          <input type="checkbox" id="autoScrollCheck" checked> 自動スクロール
+        </label>
+        <button class="btn btn-secondary btn-sm" id="clearBtn">クリア</button>
+      </div>
+    </div>
+
+    <div class="console-wrapper">
+      <div class="console-header">
+        <div class="status-indicator">
+          <span class="status-dot-flat"></span>
+          <span id="connectionStatus">接続中...</span>
+        </div>
+        <div>
+          <span id="logCount">0</span> 行
+        </div>
+      </div>
+
+      <div class="console-body" id="logContainer">
+        <div class="empty-state" id="emptyState">
+          <span>ログ出力を待機しています</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    (function() {
+      const container = document.getElementById('logContainer');
+      const emptyState = document.getElementById('emptyState');
+      const statusEl = document.getElementById('connectionStatus');
+      const logCountEl = document.getElementById('logCount');
+      const autoScrollCheck = document.getElementById('autoScrollCheck');
+      const clearBtn = document.getElementById('clearBtn');
+      const searchInput = document.getElementById('searchInput');
+      const filterBtns = document.querySelectorAll('.filter-btn');
+
+      let activeFilter = 'all';
+      let searchQuery = '';
+      let logEntries = [];
+      let totalLines = 0;
+
+      function connectSSE() {
+        const evtSource = new EventSource('/logs/stream');
+
+        evtSource.onopen = function() {
+          statusEl.textContent = '接続中 (リアルタイム)';
+          statusEl.style.color = '#8ecbb0';
+        };
+
+        evtSource.onmessage = function(e) {
+          try {
+            const data = JSON.parse(e.data);
+            appendLog(data);
+          } catch(err) {
+            console.error('JSON parse error:', err);
+          }
+        };
+
+        evtSource.onerror = function() {
+          statusEl.textContent = '接続切断 (再接続試行中)';
+          statusEl.style.color = '#f87171';
+        };
+      }
+
+      function appendLog(entry) {
+        if (emptyState) {
+          emptyState.style.display = 'none';
+        }
+
+        totalLines++;
+        logCountEl.textContent = totalLines;
+        logEntries.push(entry);
+
+        const row = document.createElement('div');
+        row.className = 'log-entry';
+        row.dataset.source = entry.source || 'gateway';
+        row.dataset.text = (entry.message || '').toLowerCase();
+
+        const timeStr = entry.time ? new Date(entry.time).toLocaleTimeString() : new Date().toLocaleTimeString();
+        const sourceClass = 'source-' + (entry.source || 'gateway');
+        const textClass = entry.is_stderr ? 'log-message log-stderr' : 'log-message log-stdout';
+
+        row.innerHTML = `
+          <span class="log-time">${timeStr}</span>
+          <span class="log-source ${sourceClass}">${escapeHtml(entry.source || 'SYS')}</span>
+          <span class="${textClass}">${escapeHtml(entry.message || '')}</span>
+        `;
+
+        if (!shouldShow(row)) {
+          row.style.display = 'none';
+        }
+
+        container.appendChild(row);
+
+        if (autoScrollCheck.checked) {
+          container.scrollTop = container.scrollHeight;
+        }
+      }
+
+      function shouldShow(row) {
+        const matchFilter = activeFilter === 'all' || row.dataset.source === activeFilter;
+        const matchSearch = !searchQuery || row.dataset.text.includes(searchQuery);
+        return matchFilter && matchSearch;
+      }
+
+      function applyFilters() {
+        const rows = container.querySelectorAll('.log-entry');
+        rows.forEach(r => {
+          r.style.display = shouldShow(r) ? 'flex' : 'none';
+        });
+        if (autoScrollCheck.checked) {
+          container.scrollTop = container.scrollHeight;
+        }
+      }
+
+      function escapeHtml(str) {
+        return str
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      filterBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          filterBtns.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          activeFilter = btn.dataset.filter;
+          applyFilters();
+        });
+      });
+
+      searchInput.addEventListener('input', (e) => {
+        searchQuery = e.target.value.toLowerCase().trim();
+        applyFilters();
+      });
+
+      clearBtn.addEventListener('click', () => {
+        const rows = container.querySelectorAll('.log-entry');
+        rows.forEach(r => r.remove());
+        if (emptyState) emptyState.style.display = 'flex';
+        totalLines = 0;
+        logCountEl.textContent = '0';
+        logEntries = [];
+      });
+
+      connectSSE();
+    })();
+  </script>
+</body>
+</html>
