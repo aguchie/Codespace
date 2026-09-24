@@ -3,13 +3,16 @@
 # ==========================================
 FROM golang:1.27-bookworm AS builder
 
+ARG TARGETARCH
+
 WORKDIR /build
 
 COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o workspace-manager ./cmd/workspace-manager
+RUN if [ -n "$TARGETARCH" ]; then export GOARCH="$TARGETARCH"; fi && \
+    CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o workspace-manager ./cmd/workspace-manager
 
 # ==========================================
 # Stage 2: Final Multi-Language Workspace
@@ -64,9 +67,7 @@ RUN curl -fsSL https://code-server.dev/install.sh | sh
 
 # 3. Install Go
 ENV GO_VERSION=1.27.1
-RUN wget -q "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" && \
-    tar -C /usr/local -xzf "go${GO_VERSION}.linux-amd64.tar.gz" && \
-    rm "go${GO_VERSION}.linux-amd64.tar.gz"
+COPY --from=builder /usr/local/go /usr/local/go
 
 # 4. Install Node.js and nub toolchain
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
