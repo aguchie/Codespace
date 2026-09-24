@@ -53,9 +53,9 @@ func (gr *GatewayRouter) BuildCodeServerProxy() http.Handler {
 	origDirector := proxy.Director
 	proxy.Director = func(req *http.Request) {
 		origDirector(req)
-		req.Host = targetURL.Host
+		originalHost := req.Host
 		if req.Header.Get("X-Forwarded-Host") == "" {
-			req.Header.Set("X-Forwarded-Host", req.Host)
+			req.Header.Set("X-Forwarded-Host", originalHost)
 		}
 		if req.Header.Get("X-Forwarded-Proto") == "" {
 			if req.TLS != nil {
@@ -71,6 +71,7 @@ func (gr *GatewayRouter) BuildCodeServerProxy() http.Handler {
 			if req.URL.Path == "" {
 				req.URL.Path = "/"
 			}
+			req.URL.RawPath = ""
 		}
 	}
 

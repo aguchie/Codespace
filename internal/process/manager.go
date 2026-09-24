@@ -119,7 +119,7 @@ func (pm *ProcessManager) StartCodeServer(ctx context.Context) {
 				"--auth", "none",
 				"--bind-addr", fmt.Sprintf("0.0.0.0:%d", sysCfg.CodeServerPort),
 				"--disable-telemetry",
-				"--disable-update-check",
+				"--disable-workspace-trust",
 				pm.workspaceDir,
 			}
 
