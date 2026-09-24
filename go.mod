@@ -1,6 +1,6 @@
 module workspace-manager
 
-go 1.27.1
+go 1.24
 
 require (
 	github.com/fsnotify/fsnotify v1.10.1
