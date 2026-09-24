@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -59,6 +60,8 @@ func NewProcessManager(cm *config.ConfigManager) *ProcessManager {
 
 // BroadcastLog adds a log to history and delivers it to all connected SSE clients.
 func (pm *ProcessManager) BroadcastLog(source, msg string, isStderr bool) {
+	log.Printf("[%s] %s", source, msg)
+
 	entry := LogEntry{
 		Time:     time.Now().Format(time.RFC3339),
 		Source:   source,
@@ -114,7 +117,7 @@ func (pm *ProcessManager) StartCodeServer(ctx context.Context) {
 
 			args := []string{
 				"--auth", "none",
-				"--bind-addr", fmt.Sprintf("127.0.0.1:%d", sysCfg.CodeServerPort),
+				"--bind-addr", fmt.Sprintf("0.0.0.0:%d", sysCfg.CodeServerPort),
 				"--disable-telemetry",
 				"--disable-update-check",
 				pm.workspaceDir,
@@ -122,6 +125,10 @@ func (pm *ProcessManager) StartCodeServer(ctx context.Context) {
 
 			cmd := exec.CommandContext(childCtx, csBinary, args...)
 			cmd.Dir = pm.workspaceDir
+			cmd.Env = append(os.Environ(),
+				"USER=root",
+				"HOME=/root",
+			)
 			pm.codeServerCmd = cmd
 			pm.processMu.Unlock()
 

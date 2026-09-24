@@ -24,6 +24,8 @@ LABEL description="Full-featured multi-language web IDE and runner environment"
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=UTC
+ENV USER=root
+ENV HOME=/root
 ENV PATH="/root/.cargo/bin:/usr/local/go/bin:/root/.local/bin:${PATH}"
 
 # 1. Install Base System Tools and Libraries

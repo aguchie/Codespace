@@ -64,20 +64,34 @@ func (gr *GatewayRouter) BuildCodeServerProxy() http.Handler {
 				req.Header.Set("X-Forwarded-Proto", "http")
 			}
 		}
+
+		// Strip /editor prefix so code-server receives requests at root /
+		if strings.HasPrefix(req.URL.Path, "/editor") {
+			req.URL.Path = strings.TrimPrefix(req.URL.Path, "/editor")
+			if req.URL.Path == "" {
+				req.URL.Path = "/"
+			}
+		}
 	}
 
 	proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
 		log.Printf("[CodeServerProxy] Error proxying request to %s: %v", targetURL, err)
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.WriteHeader(http.StatusBadGateway)
-		fmt.Fprintf(w, `
-			<body style="background:#131316;color:#ecebe6;font-family:sans-serif;padding:3rem;text-align:center;">
-				<h2>Code-Server が準備中または利用できません</h2>
-				<p style="color:#a9a8a2;">Code-Server プロセスが起動していることを確認してください。(Port: %d)</p>
-				<p style="color:#f28b82;font-family:monospace;">%v</p>
-				<p><a href="/logs" style="color:#6faa8e;">ログダッシュボードで確認</a></p>
-			</body>
-		`, sysCfg.CodeServerPort, err)
+		fmt.Fprintf(w, `<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="refresh" content="3">
+	<title>Code-Server 準備中</title>
+</head>
+<body style="background:#131316;color:#ecebe6;font-family:sans-serif;padding:3rem;text-align:center;">
+	<h2>Code-Server が準備中または起動処理中です</h2>
+	<p style="color:#a9a8a2;">起動中の場合は数秒後に自動で再接続されます。(Port: %d)</p>
+	<p style="color:#f28b82;font-family:monospace;font-size:0.85rem;">%v</p>
+	<p><a href="/logs" style="color:#6faa8e;">ログダッシュボードで確認</a></p>
+</body>
+</html>`, sysCfg.CodeServerPort, err)
 	}
 
 	return gr.auth.RequireAdmin(proxy)
@@ -191,7 +205,15 @@ func (gr *GatewayRouter) RouteTraffic(userAppHandler, codeServerHandler http.Han
 			return
 		}
 
-		if path == "/editor" || strings.HasPrefix(path, "/editor/") {
+		if path == "/editor" {
+			http.Redirect(w, r, "/editor/", http.StatusFound)
+			return
+		}
+
+		if strings.HasPrefix(path, "/editor/") ||
+			strings.HasPrefix(path, "/_static/") ||
+			strings.HasPrefix(path, "/stable-") ||
+			strings.HasPrefix(path, "/vscode/") {
 			codeServerHandler.ServeHTTP(w, r)
 			return
 		}

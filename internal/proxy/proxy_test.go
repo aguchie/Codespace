@@ -70,3 +70,48 @@ func TestUnauthenticatedEditorRedirect(t *testing.T) {
 		t.Errorf("expected redirect to login, got %s", location)
 	}
 }
+
+func TestEditorTrailingSlashRedirect(t *testing.T) {
+	router, _, _ := setupTestRouter(t)
+	dummy := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
+	handler := router.RouteTraffic(dummy, dummy, dummy, dummy)
+
+	req := httptest.NewRequest(http.MethodGet, "/editor", nil)
+	w := httptest.NewRecorder()
+
+	handler.ServeHTTP(w, req)
+
+	resp := w.Result()
+	if resp.StatusCode != http.StatusFound {
+		t.Errorf("expected 302 Found, got %d", resp.StatusCode)
+	}
+	if resp.Header.Get("Location") != "/editor/" {
+		t.Errorf("expected redirect to /editor/, got %s", resp.Header.Get("Location"))
+	}
+}
+
+func TestCodeServerAssetRouting(t *testing.T) {
+	router, _, _ := setupTestRouter(t)
+	codeServerVisited := false
+	userAppVisited := false
+
+	codeServerHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		codeServerVisited = true
+	})
+	userAppHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		userAppVisited = true
+	})
+	dummy := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
+
+	handler := router.RouteTraffic(userAppHandler, codeServerHandler, dummy, dummy)
+
+	// Test /_static/ should route to code-server
+	req := httptest.NewRequest(http.MethodGet, "/_static/src/browser/pages/vscode.js", nil)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if !codeServerVisited || userAppVisited {
+		t.Errorf("expected /_static/ to route to codeServerHandler, codeServerVisited=%v, userAppVisited=%v", codeServerVisited, userAppVisited)
+	}
+}
+
