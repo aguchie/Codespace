@@ -125,10 +125,18 @@ func (pm *ProcessManager) StartCodeServer(ctx context.Context) {
 
 			cmd := exec.CommandContext(childCtx, csBinary, args...)
 			cmd.Dir = pm.workspaceDir
-			cmd.Env = append(os.Environ(),
+			env := make([]string, 0, len(os.Environ())+3)
+			for _, e := range os.Environ() {
+				if !strings.HasPrefix(e, "PORT=") {
+					env = append(env, e)
+				}
+			}
+			env = append(env,
+				fmt.Sprintf("PORT=%d", sysCfg.CodeServerPort),
 				"USER=root",
 				"HOME=/root",
 			)
+			cmd.Env = env
 			pm.codeServerCmd = cmd
 			pm.processMu.Unlock()
 
@@ -194,7 +202,14 @@ func (pm *ProcessManager) SyncUserApp(ctx context.Context) {
 	}
 
 	cmd.Dir = pm.workspaceDir
-	cmd.Env = os.Environ()
+	appEnv := make([]string, 0, len(os.Environ())+1)
+	for _, e := range os.Environ() {
+		if !strings.HasPrefix(e, "PORT=") {
+			appEnv = append(appEnv, e)
+		}
+	}
+	appEnv = append(appEnv, fmt.Sprintf("PORT=%d", wsCfg.App.Port))
+	cmd.Env = appEnv
 	pm.appCmd = cmd
 
 	pm.BroadcastLog("app", fmt.Sprintf("Starting dev command: '%s'", newCmd), false)
